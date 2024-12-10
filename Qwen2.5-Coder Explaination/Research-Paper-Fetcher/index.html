@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Paper Finder</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+        }
+        .header {
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .search-bar {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            outline: none;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .search-bar input:focus {
+            border-color: #007bff;
+        }
+        .search-bar button {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: #007bff;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .result-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            transition: transform 0.3s;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s forwards;
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .result-card h3 {
+            margin: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+        .result-card p {
+            margin: 10px 15px;
+            color: #666;
+        }
+        .result-card .buttons {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .result-card button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px; /* Increased icon size */
+            color: #007bff;
+            transition: color 0.3s;
+        }
+        .result-card button:hover {
+            color: #ff6b6b;
+        }
+        .sidebar-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: background 0.3s;
+        }
+        .sidebar-toggle:hover {
+            background: #0056b3;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background: #fff;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .sidebar.open {
+            left: 0;
+        }
+        .sidebar h2 {
+            margin-bottom: 20px;
+            font-size: 20px;
+            color: #333;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+        .sidebar a {
+            text-decoration: none;
+            color: #007bff;
+            transition: color 0.3s;
+        }
+        .sidebar a:hover {
+            color: #ff6b6b;
+        }
+        .reset-button {
+            margin-top: 20px;
+            background: #ff6b6b;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            width: 100%;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .reset-button:hover {
+            background: #e84c3d;
+        }
+        footer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: none;
+            color: #333;
+            text-align: right;
+        }
+        footer p {
+            margin: 0;
+            font-size: 14px;
+        }
+        @media (max-width: 768px) {
+            .result-card {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="search-bar">
+            <input type="text" id="searchQuery" placeholder="Search for research papers...">
+            <button onclick="fetchPapers()">&#128269;</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="results" id="results"></div>
+    </div>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+    <div class="sidebar" id="sidebar">
+        <button class="sidebar-toggle" onclick="toggleSidebar()" style="position: absolute; top: 20px; right: 20px;">&#10006;</button>
+        <h2>Liked Papers</h2>
+        <ul id="likedPapers"></ul>
+        <button class="reset-button" onclick="resetData()">Reset All Data</button>
+    </div>
+    <footer>
+        <p>Name: Nikhileswara Rao Sulake</p>
+        <p>Subtitle: Blogathon 51</p>
+    </footer>
+
+    <script>
+        let papers = [];
+        let currentIndex = 0;
+        const likedPapers = [];
+
+        function fetchPapers() {
+            const query = document.getElementById('searchQuery').value;
+            if (!query) return;
+
+            fetch(`https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10`)
+                .then(response => response.text())
+                .then(data => {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(data, "text/xml");
+                    const entries = xmlDoc.getElementsByTagName("entry");
+                    papers = Array.from(entries).map(entry => ({
+                        title: entry.getElementsByTagName("title")[0].textContent,
+                        authors: Array.from(entry.getElementsByTagName("name")).map(name => name.textContent).join(', '),
+                        date: entry.getElementsByTagName("published")[0].textContent.split('T')[0],
+                        summary: entry.getElementsByTagName("summary")[0].textContent.substring(0, 200) + '...',
+                        pdfLink: entry.getElementsByTagName("link")[1].getAttribute("href")
+                    }));
+                    currentIndex = 0;
+                    displayNextPaper();
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function displayNextPaper() {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '';
+
+            if (currentIndex >= papers.length) {
+                alert('No more papers to display.');
+                return;
+            }
+
+            const paper = papers[currentIndex];
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = `
+                <h3>${paper.title}</h3>
+                <p><strong>Authors:</strong> ${paper.authors}</p>
+                <p><strong>Date:</strong> ${paper.date}</p>
+                <p>${paper.summary}</p>
+                <div class="buttons">
+                    <button onclick="likePaper('${paper.title}', '${paper.pdfLink}')">&#9829;</button>
+                    <button onclick="ignorePaper()">&#10060;</button>
+                </div>
+            `;
+            resultsContainer.appendChild(card);
+        }
+
+        function likePaper(title, pdfLink) {
+            if (!likedPapers.some(paper => paper.title === title)) {
+                likedPapers.push({ title, pdfLink });
+                updateSidebar();
+            }
+            currentIndex++;
+            displayNextPaper();
+        }
+
+        function ignorePaper() {
+            currentIndex++;
+            displayNextPaper();
+        }
+
+        function resetData() {
+            likedPapers.length = 0;
+            updateSidebar();
+        }
+
+        function updateSidebar() {
+            const sidebarList = document.getElementById('likedPapers');
+            sidebarList.innerHTML = '';
+            likedPapers.forEach(paper => {
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = paper.pdfLink;
+                link.target = '_blank';
+                link.textContent = paper.title;
+                listItem.appendChild(link);
+                sidebarList.appendChild(listItem);
+            });
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
